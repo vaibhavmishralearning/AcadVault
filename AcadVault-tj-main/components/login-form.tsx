@@ -10,35 +10,35 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { apiClient } from "@/lib/api"
+import { toast } from "sonner"
 
 export function LoginForm() {
   const [showPassword, setShowPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
-  const [role, setRole] = useState<string>("")
+  const [username, setUsername] = useState("")
+  const [password, setPassword] = useState("")
+  const [signupData, setSignupData] = useState({
+    username: "",
+    email: "",
+    password: "",
+    firstName: "",
+    lastName: "",
+  })
   const router = useRouter()
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsLoading(true)
 
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 1000))
+    const response = await apiClient.login({ username, password })
 
-    // Redirect based on role
-    switch (role) {
-      case "student":
-        router.push("/student")
-        break
-      case "faculty":
-        router.push("/faculty")
-        break
-      case "admin":
-        router.push("/admin")
-        break
-      default:
-        router.push("/")
+    if (response.data?.token) {
+      toast.success("Login successful!")
+      router.push("/student") // Default to student for now
+    } else {
+      toast.error(response.error || "Login failed")
     }
 
     setIsLoading(false)
@@ -48,10 +48,41 @@ export function LoginForm() {
     e.preventDefault()
     setIsLoading(true)
 
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 1000))
+    try {
+      console.log("Submitting registration data:", {
+        username: signupData.username,
+        email: signupData.email,
+        password: "***"
+      })
 
-    // For demo, redirect to login
+      const response = await apiClient.register({
+        username: signupData.username,
+        email: signupData.email,
+        password: signupData.password,
+      })
+
+      console.log("Registration response:", response)
+
+      if (response.data && response.data.message) {
+        toast.success("Account created successfully! Please log in.")
+        // Clear the form
+        setSignupData({
+          username: "",
+          email: "",
+          password: "",
+          firstName: "",
+          lastName: "",
+        })
+      } else if (response.error) {
+        toast.error(response.error)
+      } else {
+        toast.error("Registration failed - please try again")
+      }
+    } catch (error) {
+      console.error("Registration error:", error)
+      toast.error("Registration failed - network error")
+    }
+
     setIsLoading(false)
   }
 
@@ -77,8 +108,15 @@ export function LoginForm() {
           <TabsContent value="login">
             <form onSubmit={handleLogin} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
-                <Input id="email" type="email" placeholder="Enter your email" required />
+                <Label htmlFor="username">Username</Label>
+                <Input
+                  id="username"
+                  type="text"
+                  placeholder="Enter your username"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  required
+                />
               </div>
 
               <div className="space-y-2">
@@ -88,6 +126,8 @@ export function LoginForm() {
                     id="password"
                     type={showPassword ? "text" : "password"}
                     placeholder="Enter your password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
                     required
                   />
                   <Button
@@ -102,21 +142,7 @@ export function LoginForm() {
                 </div>
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="role">Role</Label>
-                <Select value={role} onValueChange={setRole} required>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select your role" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="student">Student</SelectItem>
-                    <SelectItem value="faculty">Faculty</SelectItem>
-                    <SelectItem value="admin">Administrator</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <Button type="submit" className="w-full" disabled={isLoading || !role}>
+              <Button type="submit" className="w-full" disabled={isLoading || !username || !password}>
                 {isLoading ? "Signing in..." : "Sign In"}
               </Button>
             </form>
@@ -127,17 +153,45 @@ export function LoginForm() {
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="firstName">First Name</Label>
-                  <Input id="firstName" placeholder="John" required />
+                  <Input
+                    id="firstName"
+                    placeholder="John"
+                    value={signupData.firstName}
+                    onChange={(e) => setSignupData(prev => ({ ...prev, firstName: e.target.value }))}
+                  />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="lastName">Last Name</Label>
-                  <Input id="lastName" placeholder="Doe" required />
+                  <Input
+                    id="lastName"
+                    placeholder="Doe"
+                    value={signupData.lastName}
+                    onChange={(e) => setSignupData(prev => ({ ...prev, lastName: e.target.value }))}
+                  />
                 </div>
               </div>
 
               <div className="space-y-2">
+                <Label htmlFor="signupUsername">Username</Label>
+                <Input
+                  id="signupUsername"
+                  placeholder="johndoe"
+                  value={signupData.username}
+                  onChange={(e) => setSignupData(prev => ({ ...prev, username: e.target.value }))}
+                  required
+                />
+              </div>
+
+              <div className="space-y-2">
                 <Label htmlFor="signupEmail">Email</Label>
-                <Input id="signupEmail" type="email" placeholder="john.doe@university.edu" required />
+                <Input
+                  id="signupEmail"
+                  type="email"
+                  placeholder="john.doe@university.edu"
+                  value={signupData.email}
+                  onChange={(e) => setSignupData(prev => ({ ...prev, email: e.target.value }))}
+                  required
+                />
               </div>
 
               <div className="space-y-2">
@@ -147,6 +201,8 @@ export function LoginForm() {
                     id="signupPassword"
                     type={showPassword ? "text" : "password"}
                     placeholder="Create a password"
+                    value={signupData.password}
+                    onChange={(e) => setSignupData(prev => ({ ...prev, password: e.target.value }))}
                     required
                   />
                   <Button
@@ -161,21 +217,11 @@ export function LoginForm() {
                 </div>
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="signupRole">Role</Label>
-                <Select value={role} onValueChange={setRole} required>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select your role" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="student">Student</SelectItem>
-                    <SelectItem value="faculty">Faculty</SelectItem>
-                    <SelectItem value="admin">Administrator</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <Button type="submit" className="w-full" disabled={isLoading || !role}>
+              <Button
+                type="submit"
+                className="w-full"
+                disabled={isLoading || !signupData.username || !signupData.email || !signupData.password}
+              >
                 {isLoading ? "Creating account..." : "Create Account"}
               </Button>
             </form>

@@ -10,13 +10,15 @@ from rest_framework.views import APIView
 from rest_framework import status
 from django.contrib.auth import authenticate
 from rest_framework.authtoken.models import Token
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.authentication import TokenAuthentication
 
 
 
 
 class RegisterAPI(APIView):
+    permission_classes = [AllowAny]
+    
     def post(self, request):
         data = request.data
         serializer = RegisterSerializer(data=data)
@@ -29,6 +31,8 @@ class RegisterAPI(APIView):
 
 
 class LoginAPI(APIView):
+    permission_classes = [AllowAny]
+    
     def post(self, request):
         data = request.data
         serializer = LoginSerializer(data=data)
@@ -40,9 +44,9 @@ class LoginAPI(APIView):
             token, _ = Token.objects.get_or_create(user=user)
             return Response({'message':'user login successfully','token':str(token)})
 
-@api_view()
+@api_view(['GET'])
 def home(request):
-    return Response({"message": "Hello, world!"})
+    return Response({"message": "Hello, world! AcadVault API is running."})
 
 # ADMIN VIEWS ____________________________________________________
 # STUDENT VIEWS ____________________________________________________
